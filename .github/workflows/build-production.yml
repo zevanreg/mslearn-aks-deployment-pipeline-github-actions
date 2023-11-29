@@ -1,0 +1,31 @@
+name: Build and push the tagged build to production
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.1.1
+
+      - id: extractTag
+        run: echo "tag=${{ github.ref#refs/tags/ }}"
+      
+      - name: Docker Login
+        uses: docker/login-action@v3.0.0
+        with:
+          registry: ${{ secrets.ACR_NAME }}
+          username: ${{ secrets.ACR_USER }}
+          password: ${{ secrets.ACR_PWD }}
+
+      - name: Build and push Docker images
+        uses: docker/build-push-action@v5.1.0
+        with:
+          context: .
+          tags: ${{secrets.ACR_NAME}}/contoso-website:latest,${{secrets.ACR_NAME}}/contoso-website:${{ steps.extractTag.outputs.tag }}
+          push: true
+
+                
