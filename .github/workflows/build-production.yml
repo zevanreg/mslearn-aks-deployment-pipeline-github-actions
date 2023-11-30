@@ -19,31 +19,6 @@ jobs:
       - id: extractTag
         run: echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
       
-      - name: Azure Login
-        uses: azure/login@v1
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Azure CLI Action
-        uses: Azure/cli@v1.0.8
-        with:
-          # Specify the script here
-          inlineScript: |
-            az ad app federated-credential update \
-              --federated-credential-id PROD_CRED \
-              --id ${{ secrets.AZURE_CLIENT_ID }} 
-              --parameters "{
-                  "name": "PROD_CRED",
-                  "issuer": "https://token.actions.githubusercontent.com",
-                  "subject": "repo:zevanreg/mslearn-aks-deployment-pipeline-github-actions:ref:refs/tags/${{ steps.extractTag.outputs.tag }}",
-                  "description": "Testing",
-                  "audiences": [
-                      "api://AzureADTokenExchange"
-                  ]
-                }"
-
       - name: Docker Login
         uses: docker/login-action@v3.0.0
         with:
@@ -74,24 +49,6 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Azure CLI Action
-        uses: Azure/cli@v1.0.8
-        with:
-          # Specify the script here
-          inlineScript: |
-            az ad app federated-credential update \
-              --federated-credential-id PROD_CRED \
-              --id ${{ secrets.AZURE_CLIENT_ID }} 
-              --parameters "{
-                  "name": "PROD_CRED",
-                  "issuer": "https://token.actions.githubusercontent.com",
-                  "subject": "repo:zevanreg/mslearn-aks-deployment-pipeline-github-actions:ref:refs/tags/${{ needs.build.outputs.tag }}",
-                  "description": "Testing",
-                  "audiences": [
-                      "api://AzureADTokenExchange"
-                  ]
-                }"
       
       - name: Azure Kubernetes set context
         uses: Azure/aks-set-context@v3
