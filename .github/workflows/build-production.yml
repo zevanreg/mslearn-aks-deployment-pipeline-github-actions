@@ -7,6 +7,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.extractTag.outputs.tag }}
     steps:
       - uses: actions/checkout@v4.1.1
 
@@ -46,7 +48,25 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          
+
+      - name: Azure CLI Action
+        uses: Azure/cli@v1.0.8
+        with:
+          # Specify the script here
+          inlineScript: |
+            az ad app federated-credential update \
+              --federated-credential-id PROD_CRED \
+              --id ${{ secrets.AZURE_CLIENT_ID }} 
+              --parameters "{
+                  "name": "PROD_CRED",
+                  "issuer": "https://token.actions.githubusercontent.com",
+                  "subject": "repo:zevanreg/mslearn-aks-deployment-pipeline-github-actions:ref:refs/tags/${{ needs.build.outputs.tag }}",
+                  "description": "Testing",
+                  "audiences": [
+                      "api://AzureADTokenExchange"
+                  ]
+                }"
+      
       - name: Azure Kubernetes set context
         uses: Azure/aks-set-context@v3
         with:
@@ -60,8 +80,9 @@ jobs:
             --create-namespace \
             --atomic \
             --wait \
-            --namespace staging \
+            --namespace production \
             contoso-website \
             ./kubernetes/contoso-website \
             --set image.repository=${{ secrets.ACR_NAME }} \
             --set dns.name=${{ secrets.DNS_NAME }}
+            --set image.tag=${{ needs.build.outputs.tag }}
